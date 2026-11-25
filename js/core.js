@@ -125,7 +125,7 @@ SD.form = (root, key, spec, onchange) => {
       el = SD.$('div', { class: 'f' }, SD.$('div', { class: 'l', textContent: f.label }), box);
     }
     else if (f.type === 'file') {
-      const i = SD.$('input', { type: 'file', accept: 'image/*', hidden: true, onchange: async () => { if (!i.files[0]) return; try { const p = await SD.photo(i.files[0]); st[f.k] = await p.get(); b.textContent = '✓ ' + p.name; fire(f.k); } catch (e) { SD.toast(e.message); } } });
+      const i = SD.$('input', { type: 'file', accept: 'image/*' + (f.pdf ? ',application/pdf,.pdf' : ''), hidden: true, onchange: async () => { const pick = i.files[0]; i.value = ''; if (!pick) return; try { let p; if (f.pdf && SD.isPdf(pick)) { const a = await SD.pdfPick(pick, key, true); if (!a.length) return; p = await SD.photo(a[0].canvas, a[0].name); } else p = await SD.photo(pick); st[f.k] = await p.get(); b.textContent = '✓ ' + p.name; fire(f.k); } catch (e) { SD.toast(e.message); } } });
       const b = SD.$('button', { class: 'btn s', textContent: f.btn || '그림 고르기', onclick: () => i.click() });
       el = SD.$('div', { class: 'f' }, SD.$('div', { class: 'l', textContent: f.label }), b, i);
     }
@@ -144,10 +144,12 @@ SD.form = (root, key, spec, onchange) => {
 };
 /* 사진 받는 칸 */
 SD.isPic = f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|bmp|hei[cf]|avif)$/i.test(f.name);
+SD.isPdf = f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '');
+SD.okFile = (f, pdf) => SD.isPic(f) || (pdf && SD.isPdf(f));
 SD.drop = opt => {
-  const add = fs => { fs = fs.filter(SD.isPic); if (!fs.length) return SD.toast('사진 파일(JPG·PNG 등)을 넣어 주세요.'); opt.add(fs); };
-  const inp = SD.$('input', { type: 'file', accept: 'image/*,.heic,.heif', multiple: opt.multiple !== false, hidden: true, onchange: () => { add([...inp.files]); inp.value = ''; } });
-  const el = SD.$('div', { class: 'drop ' + (opt.mini ? 'mini' : '') }, SD.$('div', { textContent: opt.text || '여기에 사진을 끌어다 놓거나, 복사한 그림을 붙여 넣으세요(Ctrl+V)' }), SD.$('button', { class: 'btn' + (opt.mini ? ' s' : ' p'), textContent: opt.btn || '사진 고르기', onclick: () => inp.click() }), opt.sample ? SD.$('button', { class: 'btn' + (opt.mini ? ' s' : ''), textContent: '예시로 해 보기', onclick: opt.sample }) : null, inp);
+  const add = fs => { const n = fs.length; fs = fs.filter(f => SD.okFile(f, opt.pdf)); if (!fs.length) return SD.toast(opt.pdf ? '사진(JPG·PNG 등)이나 PDF 파일을 넣어 주세요.' : '사진 파일(JPG·PNG 등)을 넣어 주세요.'); if (fs.length < n) SD.toast(`쓸 수 없는 파일 ${n - fs.length}개는 뺐습니다.`); opt.add(fs); };
+  const inp = SD.$('input', { type: 'file', accept: 'image/*,.heic,.heif' + (opt.pdf ? ',application/pdf,.pdf' : ''), multiple: opt.multiple !== false, hidden: true, onchange: () => { add([...inp.files]); inp.value = ''; } });
+  const el = SD.$('div', { class: 'drop ' + (opt.mini ? 'mini' : '') }, SD.$('div', { textContent: opt.text || (opt.pdf ? '여기에 사진이나 PDF를 끌어다 놓거나, 복사한 그림을 붙여 넣으세요(Ctrl+V)' : '여기에 사진을 끌어다 놓거나, 복사한 그림을 붙여 넣으세요(Ctrl+V)') }), SD.$('button', { class: 'btn' + (opt.mini ? ' s' : ' p'), textContent: opt.btn || (opt.pdf ? '사진·PDF 고르기' : '사진 고르기'), onclick: () => inp.click() }), opt.sample ? SD.$('button', { class: 'btn' + (opt.mini ? ' s' : ''), textContent: '예시로 해 보기', onclick: opt.sample }) : null, inp);
   el.ondragover = e => { e.preventDefault(); el.classList.add('on'); }; el.ondragleave = () => el.classList.remove('on');
   el.ondrop = e => { e.preventDefault(); e.stopPropagation(); el.classList.remove('on'); add([...e.dataTransfer.files]); };
   return el;
@@ -168,8 +170,8 @@ SD.bench = (root, o) => {
   B.msg = s => { msg.textContent = s || ''; };
   B.prog = v => { bar.hidden = v == null; if (v != null) bar.firstChild.style.width = Math.round(v * 100) + '%'; };
   const sample = o.sample && (async () => { for (const [c, n] of await o.sample()) await B.addCanvas(c, n); });
-  const drop = SD.drop({ add: f => B.add(f), sample, text: o.text }); root.append(drop, body);
-  const mini = SD.drop({ mini: true, add: f => B.add(f), text: '더 넣기', btn: '고르기' });
+  const drop = SD.drop({ add: f => B.add(f), sample, text: o.text, pdf: !o.nopdf }); root.append(drop, body);
+  const mini = SD.drop({ mini: true, add: f => B.add(f), text: '더 넣기', btn: '고르기', pdf: !o.nopdf });
   B.drawThumbs = () => {
     thumbs.replaceChildren(mini);
     B.photos.forEach(p => {
@@ -183,8 +185,9 @@ SD.bench = (root, o) => {
   };
   const empty = () => { B.sel = null; body.hidden = true; drop.hidden = false; };
   const took = async p => { B.photos.push(p); drop.hidden = true; body.hidden = false; if (!B.sel) await B.pick(p); else B.drawThumbs(); o.onAdd && o.onAdd(p); };
-  B.add = async fs => { let i = 0; for (const f of fs) { if (fs.length > 3) SD.toast(`사진 여는 중 ${++i} / ${fs.length}`); try { await took(await SD.photo(f, f.name, o.cap)); } catch (e) { SD.toast((f.name || '') + ' — ' + e.message); } } };
-  B.addCanvas = async (c, n) => took(await SD.photo(c, n));
+  B.add = async fs => { let i = 0; for (const f of fs) { if (fs.length > 3) SD.toast(`사진 여는 중 ${++i} / ${fs.length}`); try { if (SD.isPdf(f)) { if (o.nopdf) throw new Error('이 기능은 사진 파일만 받습니다.'); for (const q of await SD.pdfPick(f, o.id)) await B.addCanvas(q.canvas, q.name, q.full); continue; } await took(await SD.photo(f, f.name, o.cap)); } catch (e) { SD.toast((f.name || '') + ' — ' + e.message); } } };
+  B.addCanvas = async (c, n, full) => { const p = await SD.photo(c, n); if (full) Object.assign(p.st, { q: [[0, 0], [1, 0], [1, 1], [0, 1]], sure: true }); return took(p); };
+  B.pdf = !o.nopdf;
   B.pick = async p => { B.sel = p; B.drawThumbs(); if (o.onPick) await o.onPick(p); B.refresh(); };
   let busy = 0, again = 0;
   B.refresh = () => {
@@ -227,4 +230,4 @@ SD.bench = (root, o) => {
   return B;
 };
 addEventListener('paste', e => { const f = [...((e.clipboardData && e.clipboardData.files) || [])].filter(SD.isPic); if (f.length && SD.cur && !document.querySelector('dialog[open]')) { e.preventDefault(); SD.cur.add(f.map(x => new File([x], '붙여 넣은 사진.png', { type: x.type }))); } });
-['dragover', 'drop'].forEach(t => addEventListener(t, e => { if ([...((e.dataTransfer && e.dataTransfer.types) || [])].includes('Files')) { e.preventDefault(); if (t === 'drop' && SD.cur) SD.cur.add([...e.dataTransfer.files].filter(SD.isPic)); } }));
+['dragover', 'drop'].forEach(t => addEventListener(t, e => { if ([...((e.dataTransfer && e.dataTransfer.types) || [])].includes('Files')) { e.preventDefault(); if (t === 'drop' && SD.cur && !document.querySelector('dialog[open]')) SD.cur.add([...e.dataTransfer.files].filter(f => SD.okFile(f, SD.cur.pdf))); } }));

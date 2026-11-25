@@ -91,7 +91,7 @@ SD.tool({
     const kindOf = p => { if (!p.st.kind) { const s = SD.fit(p.pv, 160), d = SD.x(SD.copy(s)).getImageData(0, 0, s.width, s.height).data; let r = 0, b = 0; for (let i = 0; i < d.length; i += 4) { if (d[i] - (d[i + 1] + d[i + 2]) / 2 > 60) r++; if (d[i + 2] - d[i] > 60) b++; } const n = d.length / 4; p.st.kind = r > n * .004 ? 'red' : b > n * .004 ? 'blue' : 'black'; } };
     const B = SD.bench(root, {
       id: 'stamp', title: '도장서명', suf: '_투명', sample: () => [[SD.demo.stamp(), '도장.png'], [SD.demo.sign(), '서명.png']],
-      text: '흰 종이에 찍은 도장이나 서명을 가까이서 찍어 넣으세요. 그림자가 있어도 됩니다.',
+      text: '흰 종이에 찍은 도장이나 서명을 가까이서 찍어 넣으세요. 도장이 든 PDF도 됩니다.',
       onPick: p => { kindOf(p); st.$set('kind', p.st.kind); },
       process: (p, { preview, src }) => {
         kindOf(p); const o = { ...st, kind: p.st.kind }; let c = SD.ink(src, o);
@@ -169,7 +169,7 @@ SD.tool({
       return { canvas: f, mmW: PW, mmH: PH, n: nx * ny };
     };
     const B = SD.bench(root, {
-      id: 'idphoto', title: '증명사진', suf: '_증명', fmt: () => ['image/jpeg', .95], sample: () => [[SD.demo.person(), '사람.png']], text: '얼굴과 어깨가 나온 사진을 넣으세요.', onAdd: p => Q.add(p),
+      id: 'idphoto', title: '증명사진', nopdf: true, suf: '_증명', fmt: () => ['image/jpeg', .95], sample: () => [[SD.demo.person(), '사람.png']], text: '얼굴과 어깨가 나온 사진을 넣으세요.', onAdd: p => Q.add(p),
       process: async (p, { preview, src }) => {
         if (!await SD.waitMask(p, preview)) return preview ? src : null; const [mw, mh] = dim(), W = preview ? Math.round(700 * mw / mh) : px(mw), H = preview ? 700 : px(mh), f = one(p, src, W, H);
         if (preview && st.guide) { const x = SD.x(f); x.setLineDash([8, 6]); x.strokeStyle = '#e2452b'; x.lineWidth = 1.5; [st.top, st.top + st.head].forEach(v => { x.beginPath(); x.moveTo(0, H * v / 100); x.lineTo(W, H * v / 100); x.stroke(); }); x.beginPath(); x.moveTo(W / 2, 0); x.lineTo(W / 2, H); x.stroke(); }

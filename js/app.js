@@ -22,7 +22,7 @@ function go() {
     app.append(SD.$('div', { class: 'head' }, SD.$('div', {}, SD.$('h1', { textContent: t.title }), SD.$('p', { class: 'lead', textContent: t.when })), SD.$('button', { class: 'btn', textContent: '비우기', onclick: go }), SD.$('a', { class: 'btn', href: '#', textContent: '← 처음 화면으로' })), root); t.mount(root); return;
   }
   SD.carry = null; document.title = '사진 손질방 — 누끼따기부터 증명사진까지';
-  app.append(SD.$('h1', { textContent: '사진, 무엇을 해 드릴까요?' }), SD.$('p', { class: 'lead', textContent: '하려는 일을 고르고 사진을 넣으면 됩니다. 끝난 사진은 다른 손질로 바로 이어집니다.' }));
+  app.append(SD.$('h1', { textContent: '사진, 무엇을 해 드릴까요?' }), SD.$('p', { class: 'lead', textContent: '하려는 일을 고르고 사진을 넣으면 됩니다(PDF도 됩니다). 끝난 사진은 다른 손질로 바로 이어집니다.' }));
   Object.keys(G).forEach(g => app.append(SD.$('h2', { textContent: G[g] }), SD.$('div', { class: 'cards' }, ...SD.tools.filter(q => q.group == g).map(q => SD.$('a', { class: 'card', href: '#' + q.id }, svgOf(q.icon), SD.$('div', {}, SD.$('b', { textContent: q.title }), SD.$('span', { textContent: q.when })))))));
   app.append(SD.$('h2', { textContent: '손질한 사진을 쓸 곳 · 먼저 할 일' }), SD.$('div', { class: 'links' }, ...LINKS.map(([a, b]) => SD.$('a', { href: b, target: '_blank', rel: 'noopener', textContent: a }))));
 }

@@ -81,7 +81,7 @@ SD.tool({
     let st; const NS = 'http://www.w3.org/2000/svg';
     const out = (p, src, max) => { const q = p.st.q.map(([x, y]) => [x * src.width, y * src.height]), L = (a, b) => Math.hypot(q[a][0] - q[b][0], q[a][1] - q[b][1]); let W = Math.max(L(0, 1), L(3, 2)), H = Math.max(L(0, 3), L(1, 2)); const asp = SD.aspect(q, src.width, src.height); if (asp) { const A = W * H; W = Math.sqrt(A * asp); H = Math.sqrt(A / asp); } H *= st.tall / 100; if (st.ratio === 'a4') { const r = 297 / 210; if (H >= W) H = W * r; else W = H * r; } const k = Math.min(1, max / Math.max(W, H)); let c = SD.warp(src, q, Math.max(20, W * k), Math.max(20, H * k)); if (st.look !== 'photo') c = SD.unshade(c, st.look, st.power); if (p.st.r) { const r = p.st.r, n = r % 180 ? SD.cv(c.height, c.width) : SD.cv(c.width, c.height), x = SD.x(n); x.translate(n.width / 2, n.height / 2); x.rotate(r * Math.PI / 180); x.drawImage(c, -c.width / 2, -c.height / 2); c = n; } return c; };
     const B = SD.bench(root, {
-      id: 'scan', title: '문서사진', suf: '_펴기', fmt: () => ['image/jpeg', .9], sample: () => [[SD.demo.doc(), '영수증.png']], text: '서류·영수증 사진을 넣으세요. 종이가 다 나오게, 종이보다 어두운 바닥에서 찍으면 모서리를 잘 찾습니다.',
+      id: 'scan', title: '문서사진', suf: '_펴기', fmt: () => ['image/jpeg', .9], sample: () => [[SD.demo.doc(), '영수증.png']], text: '서류·영수증 사진이나 스캔한 PDF를 넣으세요. 사진은 종이가 다 나오게, 종이보다 어두운 바닥에서 찍으면 모서리를 잘 찾습니다.',
       onPick: p => { if (!p.st.q) { const r = SD.corners(p.pv); p.st.q = r.q; p.st.sure = r.sure; } show(p); },
       process: (p, { preview, src }) => out(p, src, preview ? 900 : 2400), after: p => B.msg(p.st.sure ? '파란 점을 끌어 모서리를 맞출 수 있습니다.' : '종이 모서리를 못 찾았습니다. 파란 점 네 개를 종이 모서리로 끌어 주세요.')
     });
